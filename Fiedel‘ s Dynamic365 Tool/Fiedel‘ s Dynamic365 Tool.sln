@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FiedelsDynamic365Tool", "FiedelsDynamic365Tool.csproj", "{B6AE5EF5-4974-4118-A033-82064FF1301D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TulevasDynamic365Tool", "TulevasDynamic365Tool.csproj", "{D4E73FD9-D056-4A7A-971C-9F46E510CCEA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B6AE5EF5-4974-4118-A033-82064FF1301D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6AE5EF5-4974-4118-A033-82064FF1301D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6AE5EF5-4974-4118-A033-82064FF1301D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6AE5EF5-4974-4118-A033-82064FF1301D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4E73FD9-D056-4A7A-971C-9F46E510CCEA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4E73FD9-D056-4A7A-971C-9F46E510CCEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4E73FD9-D056-4A7A-971C-9F46E510CCEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4E73FD9-D056-4A7A-971C-9F46E510CCEA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6348B34E-1566-4134-BF42-6B62B7EE1A2E}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,104 @@
+﻿using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas.Parser;
+using iText.Kernel.Pdf.Canvas.Parser.Listener;
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.IO;
+
+namespace PdfExtractor
+{
+    class Program
+    {
+        public record ExtractedData(
+            string Firma,
+            string Straße,
+            string KostenstelleIntern,
+            string PostleitzahlMitOrt,
+            string Rechnungsnummer,
+            string Rechnungsdatum,
+            string LeistungszeitraumStart,
+            string LeistungszeitraumEnde
+        );
+
+        static void Main()
+        {
+            FolderPath folderPath = new FolderPath();
+
+            // Lade PDF-Dateien aus dem Ordner
+            folderPath.LoadPdfFiles();
+
+            foreach (var pdfPath in folderPath.PdfFiles)
+            {
+                try
+                {
+                    using (PdfReader pdfReader = new PdfReader(pdfPath))
+                    using (PdfDocument pdfDocument = new PdfDocument(pdfReader))
+                    {
+                        for (int i = 1; i <= pdfDocument.GetNumberOfPages(); i++)
+                        {
+                            var page = pdfDocument.GetPage(i);
+                            var strategy = new LocationTextExtractionStrategy();
+                            var text = PdfTextExtractor.GetTextFromPage(page, strategy);
+
+                            // Extrahiere die benötigten Daten aus dem Text
+                            var extractedData = ExtractData(text);
+
+                            // Zeige die extrahierten Daten an
+                            if (extractedData != null)
+                            {
+                                Console.WriteLine($"Firma: {extractedData.Firma}");
+                                Console.WriteLine($"Straße: {extractedData.Straße}");
+                                Console.WriteLine($"Kostenstelle Intern: {extractedData.KostenstelleIntern}");
+                                Console.WriteLine($"Postleitzahl und Ort: {extractedData.PostleitzahlMitOrt}");
+                                Console.WriteLine($"Rechnungsnummer: {extractedData.Rechnungsnummer}");
+                                Console.WriteLine($"Rechnungsdatum: {extractedData.Rechnungsdatum}");
+                                Console.WriteLine($"Leistungszeitraum: {extractedData.LeistungszeitraumStart} bis {extractedData.LeistungszeitraumEnde}");
+                                Console.WriteLine("-----------------------------------------");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Fehler beim Verarbeiten der Datei {pdfPath}: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine("Drücken Sie eine beliebige Taste, um das Programm zu beenden...");
+            Console.ReadKey();
+        }
+
+        static ExtractedData ExtractData(string text)
+        {
+            // Muster für die verschiedenen Daten
+            var firmaPattern = @"^\s*(\w+)\s*$";
+            var strassePattern = @"^\s*(\w+str\.\s+\d+)\s*$";
+            var kostenstellePattern = @"Kostenstelle\s+intern:\s*(\d+)";
+            var postleitzahlPattern = @"(\d{5})\s+([A-Za-zÄÖÜäöüß\s]+)";
+            var rechnungsnummerPattern = @"Rechnungsnummer:\s*(\d+)";
+            var rechnungsdatumPattern = @"Rechnungsdatum:\s*(\d{2}\.\d{2}\.\d{4})";
+            var leistungszeitraumPattern = @"Leistungszeitraum:\s*(\d{2}\.\d{2}\.\d{2,4})\s*–\s*(\d{2}\.\d{2}\.\d{2,4})";
+
+            // Extraktion der Daten aus den jeweiligen Zeilen
+            var firmaMatch = Regex.Match(text, firmaPattern, RegexOptions.Multiline);
+            var strasseMatch = Regex.Match(text, strassePattern, RegexOptions.Multiline);
+            var kostenstelleMatch = Regex.Match(text, kostenstellePattern, RegexOptions.Multiline);
+            var postleitzahlMatch = Regex.Match(text, postleitzahlPattern, RegexOptions.Multiline);
+            var rechnungsnummerMatch = Regex.Match(text, rechnungsnummerPattern, RegexOptions.Multiline);
+            var rechnungsdatumMatch = Regex.Match(text, rechnungsdatumPattern, RegexOptions.Multiline);
+            var leistungszeitraumMatch = Regex.Match(text, leistungszeitraumPattern, RegexOptions.Multiline);
+
+            return new ExtractedData(
+                Firma: firmaMatch.Success ? firmaMatch.Groups[1].Value.Trim() : null,
+                Straße: strasseMatch.Success ? strasseMatch.Groups[1].Value.Trim() : null,
+                KostenstelleIntern: kostenstelleMatch.Success ? kostenstelleMatch.Groups[1].Value.Trim() : null,
+                PostleitzahlMitOrt: postleitzahlMatch.Success ? $"{postleitzahlMatch.Groups[1].Value} {postleitzahlMatch.Groups[2].Value}".Trim() : null,
+                Rechnungsnummer: rechnungsnummerMatch.Success ? rechnungsnummerMatch.Groups[1].Value.Trim() : null,
+                Rechnungsdatum: rechnungsdatumMatch.Success ? rechnungsdatumMatch.Groups[1].Value.Trim() : null,
+                LeistungszeitraumStart: leistungszeitraumMatch.Success ? leistungszeitraumMatch.Groups[1].Value.Trim() : null,
+                LeistungszeitraumEnde: leistungszeitraumMatch.Success ? leistungszeitraumMatch.Groups[2].Value.Trim() : null
+            );
+        }
+    }
+}

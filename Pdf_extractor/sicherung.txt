@@ -1,0 +1,184 @@
+﻿using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas.Parser;
+using iText.Kernel.Pdf.Canvas.Parser.Listener;
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.IO;
+
+namespace PdfExtractor
+{
+    class Program
+    {
+        public record ExtractedData(
+            string Nummer,
+            string Datum,
+            string Kunde,
+            string Konto,
+            string Rechnung,
+            string KostenstelleIntern,
+            string Rechnungsnummer,
+            string Rechnungsdatum,
+            string Leistungszeitraum,
+            string FirmaMitStrasse,
+            List<string> PostleitzahlMitOrt
+        );
+
+        static void Main()
+        {
+            FolderPath folderPath = new FolderPath();
+
+            // Lade PDF-Dateien aus dem Ordner
+            folderPath.LoadPdfFiles();
+
+            // Suchmuster definieren
+            var searchPatterns = new List<(string Label, string Pattern)>
+            {
+                ("Nummer", @"Nummer\s+(\d+)"), // steht für eine beliebige Ziffern (0-9)
+                ("Datum", @"Datum\s+(\d{2}\.\d{2}\.\d{4})"), // \d{4} vier Ziffern
+                ("Kunde", @"Kunde\s+(\d+)"),
+                ("Konto", @"Konto\s+(\d+)"),
+                ("Rechnung", @"Rechnung\s*(\d*)"),
+                ("KostenstelleIntern", @"Kostenstelle\s+intern:\s*(\d+)"),
+                ("Rechnungsnummer", @"Rechnungsnummer:\s*(\d+)"),
+                ("Rechnungsdatum", @"Rechnungsdatum:\s*(\d{2}\.\d{2}\.\d{4})"),
+                ("Leistungszeitraum", @"Leistungszeitraum:\s*(\d{2}\.\d{2}\.\d{2,4})\s*–\s*(\d{2}\.\d{2}\.\d{2,4})") // Regex für den Leistungszeitraum
+            };
+
+            foreach (var pdfPath in folderPath.PdfFiles)
+            {
+                try
+                {
+                    using (PdfReader pdfReader = new PdfReader(pdfPath))
+                    using (PdfDocument pdfDocument = new PdfDocument(pdfReader))
+                    {
+                        for (int i = 1; i <= pdfDocument.GetNumberOfPages(); i++) // Lese jede Seite
+                        {
+                            var page = pdfDocument.GetPage(i);
+                            var strategy = new LocationTextExtractionStrategy();
+                            var text = PdfTextExtractor.GetTextFromPage(page, strategy);
+
+                            foreach (var (label, pattern) in searchPatterns)
+                            {
+                                Match match = Regex.Match(text, pattern);
+                                if (match.Success)
+                                {
+                                    if (label == "Leistungszeitraum")
+                                    {
+                                        // Beide Daten extrahieren
+                                        string startDate = match.Groups[1].Value;
+                                        string endDate = match.Groups[2].Value;
+                                        Console.WriteLine($"Gefundener {label}: {startDate} bis {endDate}");
+                                    }
+                                    else
+                                    {
+                                        string extractedValue = match.Groups[1].Value;
+                                        Console.WriteLine($"Gefundene {label}: {extractedValue}");
+                                    }
+                                }
+                            }
+
+                            // Suche nach dem Text nach "Hamburg"
+                            string extractAfterCity = ExtractText(text);
+                            if (extractAfterCity != null)
+                            {
+                                Console.WriteLine($"Gefundene Firma mit Straße: {extractAfterCity}");
+                            }
+
+                            // Suche nach fünfstelliger Zahl mit folgendem Wort
+                            List<string> numbersWithWords = ExtractwithNumber(text);
+                            if (numbersWithWords.Count > 0)
+                            {
+                                foreach (var item in numbersWithWords)
+                                {
+                                    Console.WriteLine($"Gefundene Postleitzahl mit Ort: {item}");
+                                }
+                            }
+
+                            Console.WriteLine("-----------------------------------------");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Fehler beim Verarbeiten der Datei {pdfPath}: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine("Drücken Sie eine beliebige Taste, um das Programm zu beenden...");
+            Console.ReadKey();
+        }
+
+        // Methode zur Extraktion des Textes nach "Hamburg"
+        static string ExtractText(string text1)
+        {
+            var pattern = @"Hamburg\s*([\s\S]*?)(?=\s*Rechnung|\z)"; // finde zwischen Hamburg und Rechnung
+
+            var match = Regex.Match(text1, pattern, RegexOptions.IgnoreCase);
+
+            if (match.Success)
+            {
+                string extractedText = match.Groups[1].Value.Trim();
+
+                string cleanedText = Regex.Replace(extractedText, @"\s*\n\s*", "\n").Trim();
+
+                return cleanedText;
+            }
+
+            return null;
+        }
+
+        static List<string> ExtractwithNumber(string text)
+        {
+            var pattern = @"\b(\d{5})\s+([A-Za-zÄÖÜäöüß\s]+)";
+            List<string> results = new List<string>();
+
+            // Extrahiere nur den Textbereich zwischen "Kostenstelle intern" und "Rechnungsnummer"
+            string relevantSection = ExtractRelevantSection(text, "Kostenstelle intern", "Rechnungsnummer");
+
+            MatchCollection matches = Regex.Matches(relevantSection, pattern);
+
+            foreach (Match match in matches)
+            {
+                if (match.Success)
+                {
+                    string extractedLocation = $"{match.Groups[1].Value} {match.Groups[2].Value}".Trim();
+
+                    if (IsLikelyAddress(extractedLocation))
+                    {
+                        results.Add(extractedLocation);
+                    }
+                }
+            }
+
+            return results;
+        }
+
+        static bool IsLikelyAddress(string extractedLocation)
+        {
+            var words = extractedLocation.Split(' ');
+
+            if (words.Length < 2)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        static string ExtractRelevantSection(string text, string startKeyword, string endKeyword)
+        {
+            int startIndex = text.IndexOf(startKeyword);
+            if (startIndex == -1) return string.Empty;
+
+            int endIndex = text.IndexOf(endKeyword, startIndex);
+            if (endIndex == -1) return string.Empty;
+
+            startIndex += startKeyword.Length;
+
+            string relevantSection = text.Substring(startIndex, endIndex - startIndex).Trim();
+
+            return relevantSection;
+        }
+    }
+}

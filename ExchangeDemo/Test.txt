@@ -1,0 +1,118 @@
+﻿using Microsoft.PowerPlatform.Dataverse.Client;
+using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
+using System;
+using System.Threading.Tasks;
+using Microsoft.Xrm.Sdk.Messages;
+using Microsoft.Xrm.Sdk.Metadata;
+using System.ServiceModel;
+
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        // Verbindung zu Dataverse herstellen
+        var connectionString = "AuthType=ClientSecret;Url=https://mariyan-test.crm4.dynamics.com;ClientId=8284497d-44c3-46fa-a33a-d35754452aea;ClientSecret=DoO8Q~2PWzl1lOvre73d3LEJAJLFB8oQNGYsWbGZ;Authority=https://login.microsoftonline.com/f2836c85-17a4-4567-8040-388c0fbaff7d";
+
+        try
+        {
+            using (var serviceClient = new ServiceClient(connectionString))
+            {
+                if (!serviceClient.IsReady)
+                {
+                    throw new InvalidOperationException("Die Verbindung zu Dataverse konnte nicht hergestellt werden.");
+                }
+
+                Console.WriteLine("Verbindung zu Dataverse erfolgreich hergestellt.");
+
+                Console.WriteLine("Möchtest du eine Tabelle auslesen? (ja/nein)");
+                string response = Console.ReadLine()?.Trim().ToLower();
+
+                if (response == "ja")
+                {
+                    await ReadTableAsync(serviceClient);
+                }
+                else
+                {
+                    Console.WriteLine("Keine Tabelle wird ausgelesen.");
+                }
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Betriebsfehler: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Allgemeiner Fehler: {ex.Message}");
+        }
+    }
+
+    private static async Task ReadTableAsync(ServiceClient serviceClient)
+    {
+        // Tabellennamen anpassen
+        string tableName = "tu_briefskopf"; // Ersetze durch deinen tatsächlichen Tabellennamen
+
+        // Query vorbereiten
+        QueryExpression query = new QueryExpression(tableName)
+        {
+            ColumnSet = new ColumnSet("tu_account", "tu_invoicedate", "tu_serviceperiod", "tu_city", "tu_invoicenumber", "tu_costcenter", "tu_street", "tu_statecode") // Nur die gewünschten Spalten abfragen
+        };
+
+        try
+        {
+            // Asynchrone Abfrage
+            EntityCollection result = await serviceClient.RetrieveMultipleAsync(query);
+
+            // Ergebnisse durchlaufen
+            foreach (var entity in result.Entities)
+            {
+                Console.WriteLine($"ID: {entity.Id}");
+
+                // Firma (Lookup-Feld tu_account)
+                var accountReference = entity.GetAttributeValue<EntityReference>("tu_account");
+                Console.WriteLine($"Firma: {accountReference?.Name ?? "Kein Wert vorhanden."}");
+
+                // Rechnungsdatum (tu_invoiceDate)
+                var invoiceDate = entity.GetAttributeValue<DateTime?>("tu_invoicedate");
+                Console.WriteLine($"Rechnungsdatum: {invoiceDate?.ToShortDateString() ?? "Kein Wert vorhanden."}");
+
+                // Serviceperiode (tu_servicePeriod) - möglicherweise auch ein DateTime oder String, je nach Datentyp
+                var servicePeriod = entity.GetAttributeValue<string>("tu_serviceperiod");
+                Console.WriteLine($"Serviceperiode: {servicePeriod ?? "Kein Wert vorhanden."}");
+
+                // Stadt (tu_city)
+                var city = entity.GetAttributeValue<string>("tu_city");
+                Console.WriteLine($"Stadt: {city ?? "Kein Wert vorhanden."}");
+
+                // Rechnungsnummer (tu_invoiceNumber) als int abfragen
+                var invoiceNumber = entity.GetAttributeValue<int?>("tu_invoiceNumber");
+                Console.WriteLine($"Rechnungsnummer: {invoiceNumber?.ToString() ?? "Kein Wert vorhanden."}");
+
+
+                // Kostenstelle (tu_costcenter) als int abfragen
+                var costCenter = entity.GetAttributeValue<int?>("tu_costcenter");
+                Console.WriteLine($"Kostenstelle: {costCenter?.ToString() ?? "Kein Wert vorhanden."}");
+
+                // Straße (tu_street)
+                var street = entity.GetAttributeValue<string>("tu_street");
+                Console.WriteLine($"Straße: {street ?? "Kein Wert vorhanden."}");
+
+                // Statuscode (tu_stateCode) als OptionSetValue abfragen
+                var stateCode = entity.GetAttributeValue<OptionSetValue>("tu_stateCode");
+
+                // Wenn stateCode vorhanden ist, wird der Wert als int ausgegeben, ansonsten wird "Kein Wert vorhanden." angezeigt
+                Console.WriteLine($"Statuscode: {(stateCode?.Value.ToString() ?? "Kein Wert vorhanden.")}");
+
+                Console.WriteLine("-----------------------------"); // Trennlinie zwischen Datensätzen
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fehler beim Auslesen der Tabelle: {ex.Message}");
+        }
+    }
+
+
+
+}

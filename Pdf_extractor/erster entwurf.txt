@@ -1,0 +1,164 @@
+
+Struct(Data)[
+Mitarbeiter Nummer 
+Firma
+Rechnungsnummer 
+Datum 
+Betrag
+]
+
+List<>PDF 
+
+
+Methode für (
+Prüfe ob eine Settings.txt Datei vorhanden ist
+Wenn ja lade die settings 
+Wenn nein gehe weiter.)
+
+Lade Methode ShowMenu
+{
+Zeige Option :
+Programm starten 
+Einstellungen
+Beenden
+}
+
+Methode Programm starten 
+{
+Führe das Programm mit den geladenen 
+Einstellungen aus;
+Methode PDF Datei lesen (List (pdf);
+Übertragung der Daten in dynamics365();
+Bericht senden("Uhrzeit muss stimmen");
+Intervall("gewählte Zeit");
+}
+
+Methode Einstellungen
+{
+[1]Wähle Ordner aus
+[2]Einstellungen Email 
+[3]Intervall
+[4]Dynamics365 konfig
+[5]showMenu()
+Prüfe Zahl ();
+}
+
+Wähle Ordner aus ()
+{
+Wenn Daten vorhanden 
+Dann verwende diese;
+Lese Ordner;
+Speichern des gewählten Ordner in den Einstellungen;
+}
+
+Einstellungen Email ()
+{
+ SMTP konfig()
+IMAP konfig()
+Einstellungen Uhrzeit ()
+
+Einstellungen Uhrzeit ()
+{
+Prüfe system Uhrzeit;
+Gebe eine Uhrzeit ein ;
+Merke Uhrzeit in Einstellungen;
+}
+
+
+SMTP konfig ()
+{
+Verweis in externe Klasse 
+}
+
+IMAP konfig ()
+{
+Verweis externe Klasse 
+   }
+}
+
+Dynamics365 konfig()
+{
+Verweis externe Klasse 
+}
+
+Methode PDF Datei lesen ()
+{
+If (dann können gelesen werden)
+{
+Die gelesenen Daten in ein Konstrukt (Data) speichern ;
+Die gelesene Datei in den Ordner "bearbeitet"
+Kopieren;
+If ( Ordner nicht vorhanden )
+Dann erstelle ihn
+Else ( Ordner ist vorhanden );
+Bericht " Dateinamen";
+}
+Else (PDF kann nicht gelesen werden)
+Log("Daten nicht gelesen");
+
+Intervall()
+{
+Wähle die Zeit für den Intervall 
+Case 1 
+       "10"
+Case 2
+       "30"
+Case 3
+      "60"
+Break;
+
+Lese die eingegebene Zahl;
+Prüfe Zahl();
+Merke in Einstellungen;
+}
+
+Uhrzeit()
+{
+Prüfe Gewählte Uhrzeit;
+Wenn gleich Systemzeit dann führe aus;
+}
+
+
+Log()
+{
+Speicher in log.txt die Einträge mit Datum und Uhrzeit;
+Fehler ("Daten Prüfen");
+}
+
+Versende Bericht ()
+{
+Führe aus Uhrzeit
+SMTP();
+IMAP();
+
+If (SMTP)
+Daten vorhanden dann verwenden 
+Else (IMAP)
+Daten vorhanden dann verwende diese
+Wenn keine Daten dann Log(Fehler) ausführen 
+Attachment bericht.datei;
+Absender Abrechnung@mail.com
+...
+......
+}
+
+
+Prüfe Zahl()
+{
+Prüfe ob es sich um eine Zahl handelt;
+Wenn nein dann zeige Text "gebe eine Zahl ein";
+Wenn eine Zahl zwischen 1 und 9 dann merke dann führe aus.
+}
+ 
+Übertragung der Daten in dynamics365()
+{
+Lade dynamics konfig()
+Lese Tabelle Rechnungsdaten;
+Lese Konstrukt (Data);
+Prüfe( Data ==Tabelle Rechnungsdaten )
+Schließe alle vorhandenen aus;
+Erstelle Einträge und fülle diese mit Data;
+
+Bericht();
+}
+
